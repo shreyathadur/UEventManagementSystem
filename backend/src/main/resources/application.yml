@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: uems-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/uems}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    defer-datasource-initialization: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  sql:
+    init:
+      mode: always
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+# Application-specific Custom Properties
+app:
+  jwt:
+    # 256-bit key in base64 or plaintext for signing JWTs
+    secret: ${JWT_SECRET:9a4f2c8d3b7a1e5f8g9h0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8A9B0C1D}
+    # Token expiration time (24 hours in milliseconds)
+    expiration-ms: 86400000
+
+logging:
+  level:
+    org.springframework.security: INFO
+    org.hibernate.SQL: INFO
