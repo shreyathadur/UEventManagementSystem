@@ -7,12 +7,11 @@ databases:
 services:
   - type: web
     name: uems-backend
-    runtime: java
+    runtime: docker
     region: oregon
     branch: main
-    rootDir: backend
-    buildCommand: ./mvnw clean package -DskipTests -B
-    startCommand: java -jar target/api-0.0.1-SNAPSHOT.jar
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     plan: free
     envVars:
       - key: SPRING_DATASOURCE_URL
@@ -31,13 +30,10 @@ services:
         generateValue: true
       - key: SERVER_PORT
         value: "8080"
-      - key: JAVA_VERSION
-        value: "17"
 
   - type: web
     name: uems-frontend
     runtime: static
-    region: oregon
     branch: main
     rootDir: frontend
     buildCommand: npm ci && npm run build
