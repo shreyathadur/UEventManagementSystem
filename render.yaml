@@ -25,7 +25,7 @@ services:
       - key: DB_NAME
         fromDatabase:
           name: uems-db
-          property: name
+          property: database
       - key: DB_USER
         fromDatabase:
           name: uems-db
