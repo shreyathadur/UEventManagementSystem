@@ -2,7 +2,8 @@ spring:
   application:
     name: uems-backend
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/uems}
+    # Render provides postgresql://... but Spring needs jdbc:postgresql://...
+    url: jdbc:${SPRING_DATASOURCE_URL:postgresql://localhost:5432/uems}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
