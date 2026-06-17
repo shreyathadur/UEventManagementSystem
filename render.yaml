@@ -14,22 +14,28 @@ services:
     dockerContext: ./backend
     plan: free
     envVars:
-      - key: SPRING_DATASOURCE_URL
+      - key: DB_HOST
         fromDatabase:
           name: uems-db
-          property: connectionString
-      - key: SPRING_DATASOURCE_USERNAME
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: uems-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: uems-db
+          property: name
+      - key: DB_USER
         fromDatabase:
           name: uems-db
           property: user
-      - key: SPRING_DATASOURCE_PASSWORD
+      - key: DB_PASSWORD
         fromDatabase:
           name: uems-db
           property: password
       - key: JWT_SECRET
         generateValue: true
-      - key: SERVER_PORT
-        value: "8080"
 
   - type: web
     name: uems-frontend

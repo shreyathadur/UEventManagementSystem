@@ -2,10 +2,10 @@ spring:
   application:
     name: uems-backend
   datasource:
-    # Render provides postgresql://... but Spring needs jdbc:postgresql://...
-    url: jdbc:${SPRING_DATASOURCE_URL:postgresql://localhost:5432/uems}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    # Construct JDBC URL from individual env vars (works for both Render and local)
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:uems}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -24,15 +24,14 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+# Render sets PORT env var (default 10000); locally use 8080
 server:
-  port: ${PORT:${SERVER_PORT:8080}}
+  port: ${PORT:8080}
 
 # Application-specific Custom Properties
 app:
   jwt:
-    # 256-bit key in base64 or plaintext for signing JWTs
     secret: ${JWT_SECRET:9a4f2c8d3b7a1e5f8g9h0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8A9B0C1D}
-    # Token expiration time (24 hours in milliseconds)
     expiration-ms: 86400000
 
 logging:
