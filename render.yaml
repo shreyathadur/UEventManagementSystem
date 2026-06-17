@@ -46,4 +46,4 @@ services:
       - key: VITE_API_URL
         value: https://uems-backend.onrender.com/api
       - key: NODE_VERSION
-        value: "18"
+        value: "20"
