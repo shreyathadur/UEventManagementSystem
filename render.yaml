@@ -7,9 +7,12 @@ databases:
 services:
   - type: web
     name: uems-backend
-    runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    runtime: java
+    region: oregon
+    branch: main
+    rootDir: backend
+    buildCommand: ./mvnw clean package -DskipTests -B
+    startCommand: java -jar target/api-0.0.1-SNAPSHOT.jar
     plan: free
     envVars:
       - key: SPRING_DATASOURCE_URL
@@ -26,12 +29,19 @@ services:
           property: password
       - key: JWT_SECRET
         generateValue: true
+      - key: SERVER_PORT
+        value: "8080"
+      - key: JAVA_VERSION
+        value: "17"
 
   - type: web
     name: uems-frontend
     runtime: static
-    buildCommand: cd frontend && npm ci && npm run build
-    staticPublishPath: ./frontend/dist
+    region: oregon
+    branch: main
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
     routes:
       - type: rewrite
         source: /*
@@ -39,3 +49,5 @@ services:
     envVars:
       - key: VITE_API_URL
         value: https://uems-backend.onrender.com/api
+      - key: NODE_VERSION
+        value: "18"

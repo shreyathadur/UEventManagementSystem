@@ -1,12 +1,8 @@
 # Java / Maven
 backend/target/
 *.class
-*.jar
 *.war
 *.log
-.mvn/
-mvnw
-mvnw.cmd
 
 # Node / Frontend
 frontend/node_modules/
