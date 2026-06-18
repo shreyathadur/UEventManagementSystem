@@ -12,25 +12,18 @@ services:
         value: 8080
       - key: SPRING_PROFILES_ACTIVE
         value: production
-      envVars:
-  - key: SPRING_PROFILES_ACTIVE
-    value: prod
-
-  - key: SPRING_DATASOURCE_URL
-    fromDatabase:
-      name: uems-db
-      property: connectionString
-
-  - key: SPRING_DATASOURCE_USERNAME
-    fromDatabase:
-      name: uems-db
-      property: user
-
-  - key: SPRING_DATASOURCE_PASSWORD
-    fromDatabase:
-      name: uems-db
-      property: password
-    plan: free
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: uems-db
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: uems-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: uems-db
+          property: password
 
   - type: static
     name: uems-frontend
