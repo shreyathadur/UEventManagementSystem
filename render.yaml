@@ -5,10 +5,8 @@ services:
     region: oregon
     branch: main
     rootDir: backend
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: backend/Dockerfile
     envVars:
-      - key: SERVER_PORT
-        value: 8080
       - key: SPRING_PROFILES_ACTIVE
         value: production
       - key: SPRING_DATASOURCE_URL
