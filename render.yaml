@@ -6,9 +6,13 @@ services:
     branch: main
     rootDir: backend
     dockerfilePath: backend/Dockerfile
+    plan: free
+    healthCheckPath: /api/health
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: production
+      - key: JWT_SECRET
+        sync: false
       - key: SPRING_DATASOURCE_URL
         fromDatabase:
           name: uems-db
@@ -40,5 +44,6 @@ services:
   - type: postgres
     name: uems-db
     version: "16"
+    region: oregon
     env: shared
     plan: free
