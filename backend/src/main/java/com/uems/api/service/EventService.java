@@ -6,6 +6,8 @@ import com.uems.api.exception.ResourceNotFoundException;
 import com.uems.api.repository.CheckInRepository;
 import com.uems.api.repository.EventRepository;
 import com.uems.api.repository.TicketRepository;
+import com.uems.api.repository.UserRepository;
+import com.uems.api.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +21,7 @@ public class EventService {
     private final EventRepository eventRepository;
     private final TicketRepository ticketRepository;
     private final CheckInRepository checkInRepository;
+    private final UserRepository userRepository;
 
     public List<EventDto> getAllEvents() {
         return eventRepository.findAllByOrderByStartDateAsc().stream()
@@ -33,6 +36,11 @@ public class EventService {
     }
 
     public EventDto createEvent(EventDto dto) {
+        User organizer = null;
+        if (dto.getOrganizerId() != null) {
+            organizer = userRepository.findById(dto.getOrganizerId()).orElse(null);
+        }
+
         Event event = Event.builder()
                 .title(dto.getTitle())
                 .description(dto.getDescription())
@@ -41,6 +49,8 @@ public class EventService {
                 .endDate(dto.getEndDate())
                 .maxCapacity(dto.getMaxCapacity())
                 .status(dto.getStatus() != null ? dto.getStatus() : "UPCOMING")
+                .category(dto.getCategory())
+                .organizer(organizer)
                 .build();
 
         Event savedEvent = eventRepository.save(event);
@@ -59,6 +69,13 @@ public class EventService {
         event.setMaxCapacity(dto.getMaxCapacity());
         if (dto.getStatus() != null) {
             event.setStatus(dto.getStatus());
+        }
+        if (dto.getCategory() != null) {
+            event.setCategory(dto.getCategory());
+        }
+        if (dto.getOrganizerId() != null) {
+            User org = userRepository.findById(dto.getOrganizerId()).orElse(null);
+            event.setOrganizer(org);
         }
 
         Event updatedEvent = eventRepository.save(event);
@@ -85,6 +102,8 @@ public class EventService {
                 .endDate(event.getEndDate())
                 .maxCapacity(event.getMaxCapacity())
                 .status(event.getStatus())
+                .category(event.getCategory())
+                .organizerId(event.getOrganizer() != null ? event.getOrganizer().getId() : null)
                 .registeredCount(regCount)
                 .checkInCount(checkInCount)
                 .build();

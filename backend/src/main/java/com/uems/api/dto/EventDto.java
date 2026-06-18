@@ -16,6 +16,8 @@ public class EventDto {
     private LocalDateTime endDate;
     private Integer maxCapacity;
     private String status;
+    private String category;
+    private Long organizerId;
     private Long registeredCount;
     private Long checkInCount;
 }

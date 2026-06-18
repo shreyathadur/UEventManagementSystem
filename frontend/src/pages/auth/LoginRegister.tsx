@@ -89,6 +89,8 @@ export const LoginRegister: React.FC = () => {
       // Redirect based on role
       if (data.role === 'ROLE_ADMIN') {
         navigate('/admin');
+      } else if (data.role === 'ROLE_ORGANIZER') {
+        navigate('/organizer');
       } else if (data.role === 'ROLE_VOLUNTEER') {
         navigate('/volunteer');
       } else {
@@ -235,6 +237,7 @@ export const LoginRegister: React.FC = () => {
                 style={{ background: 'rgba(0,0,0,0.4)', color: 'white' }}
               >
                 <option value="ROLE_USER">Student / Participant</option>
+                <option value="ROLE_ORGANIZER">Event Organizer</option>
                 <option value="ROLE_VOLUNTEER">Volunteer</option>
                 <option value="ROLE_ADMIN">Campus Administrator</option>
               </select>

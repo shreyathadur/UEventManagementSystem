@@ -1,40 +1,40 @@
-
+version: '3.8'
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:15-alpine
     environment:
-      POSTGRES_DB: uems
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: uems_user
+      POSTGRES_PASSWORD: uems_password
+      POSTGRES_DB: uems_db
     ports:
-      - "5433:5432"
+      - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+      - postgres_data:/var/lib/postgresql/data
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/uems
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
-      JWT_SECRET: uems-super-secret-jwt-key-for-signing-tokens-2026
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/uems_db
+      - SPRING_DATASOURCE_USERNAME=uems_user
+      - SPRING_DATASOURCE_PASSWORD=uems_password
+      - SERVER_PORT=8080
+      - JWT_SECRET=9a4f2c8d3b7a1e5f8g9h0i1j2k3l4m5n6o7p8q9r0s1t2u3v4w5x6y7z8A9B0C1D
     depends_on:
-      db:
-        condition: service_healthy
+      - db
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://localhost:8080
     ports:
-      - "3000:80"
+      - "5173:80"
     depends_on:
       - backend
 
 volumes:
-  pgdata:
+  postgres_data:

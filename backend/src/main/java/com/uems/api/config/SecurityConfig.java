@@ -57,9 +57,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/analytics/**").hasRole("ADMIN")
                 
                 // Admin specific endpoints (volunteer approvals, hours tracking, admin events/sponsors)
-                .requestMatchers(HttpMethod.POST, "/api/events/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/events/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/events/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/events/**").hasAnyRole("ADMIN", "ORGANIZER")
+                .requestMatchers(HttpMethod.PUT, "/api/events/**").hasAnyRole("ADMIN", "ORGANIZER")
+                .requestMatchers(HttpMethod.DELETE, "/api/events/**").hasAnyRole("ADMIN", "ORGANIZER")
                 
                 .requestMatchers("/api/volunteers/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/sponsors/**").hasRole("ADMIN")

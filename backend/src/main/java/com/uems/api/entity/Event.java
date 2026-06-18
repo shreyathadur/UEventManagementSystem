@@ -37,6 +37,13 @@ public class Event {
     @Column(nullable = false)
     private String status; // UPCOMING, ACTIVE, COMPLETED
 
+    @Column
+    private String category;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "organizer_id")
+    private User organizer;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

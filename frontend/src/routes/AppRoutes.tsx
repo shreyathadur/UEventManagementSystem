@@ -8,6 +8,7 @@ import { EventDetails } from '../pages/events/EventDetails';
 import { LoginRegister } from '../pages/auth/LoginRegister';
 import { UserDashboard } from '../pages/dashboard/UserDashboard';
 import { VolunteerDashboard } from '../pages/dashboard/VolunteerDashboard';
+import { OrganizerDashboard } from '../pages/dashboard/OrganizerDashboard';
 import { AdminDashboard } from '../pages/dashboard/AdminDashboard';
 import { NotFound } from '../pages/errors/NotFound';
 
@@ -30,6 +31,13 @@ export const AppRoutes: React.FC = () => {
       <Route path="/volunteer" element={
         <ProtectedRoute allowedRoles={['ROLE_VOLUNTEER', 'ROLE_ADMIN']}>
           <VolunteerDashboard />
+        </ProtectedRoute>
+      } />
+      
+      {/* Organizer Routes */}
+      <Route path="/organizer" element={
+        <ProtectedRoute allowedRoles={['ROLE_ORGANIZER', 'ROLE_ADMIN']}>
+          <OrganizerDashboard />
         </ProtectedRoute>
       } />
       

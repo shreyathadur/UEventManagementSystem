@@ -19,7 +19,10 @@ CREATE TABLE IF NOT EXISTS events (
     end_date TIMESTAMP NOT NULL,
     max_capacity INTEGER NOT NULL,
     status VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    category VARCHAR(100),
+    organizer_id BIGINT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_event_organizer FOREIGN KEY (organizer_id) REFERENCES app_users(id) ON DELETE SET NULL
 );
 
 -- Ticket Table
