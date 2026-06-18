@@ -30,9 +30,9 @@ services:
     startCommand: npm run preview
     envVars:
       - key: NODE_VERSION
-        value: 18
+        value: "20"
       - key: VITE_API_URL
-        value: https://uems-backend-ci15.onrender.com/api
+        value: https://uems-backend-ci15.onrender.com
     staticPublishPath: ./dist
     plan: free
 
