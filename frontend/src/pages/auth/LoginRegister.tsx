@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { API_BASE } from '../config';
+import { useAuth } from '../../context/AuthContext';
+import { authApi } from '../../api/auth';
 import { LogIn, UserPlus, Shield, Eye, EyeOff } from 'lucide-react';
 
-export const LoginRegisterView: React.FC = () => {
+export const LoginRegister: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -22,21 +22,12 @@ export const LoginRegisterView: React.FC = () => {
     setError('');
     setLoading(true);
 
-    const endpoint = isLogin ? '/auth/login' : '/auth/register';
-    const payload = isLogin 
-      ? { email, password } 
-      : { name, email, password, role };
-
     try {
-      const res = await fetch(`${API_BASE}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Authentication request failed');
+      let data;
+      if (isLogin) {
+        data = await authApi.login({ email, password });
+      } else {
+        data = await authApi.register({ name, email, password, role });
       }
 
       login(data);
@@ -48,8 +39,8 @@ export const LoginRegisterView: React.FC = () => {
       } else {
         navigate('/dashboard');
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
     } finally {
       setLoading(false);
     }

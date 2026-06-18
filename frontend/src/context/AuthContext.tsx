@@ -24,8 +24,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedUser = localStorage.getItem('uems_session');
     if (storedUser) {
       try {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setUser(JSON.parse(storedUser));
-      } catch (e) {
+      } catch {
         localStorage.removeItem('uems_session');
       }
     }
@@ -48,6 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

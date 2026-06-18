@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { API_BASE, getAuthHeaders } from '../config';
+import { useAuth } from '../../context/AuthContext';
+import { ticketsApi } from '../../api/tickets';
+import { certificatesApi } from '../../api/certificates';
 import { Ticket, Award, Download, Calendar, MapPin, CheckCircle2 } from 'lucide-react';
 
 interface TicketData {
@@ -28,7 +29,7 @@ interface CertificateData {
   issuedAt: string;
 }
 
-export const UserDashboardView: React.FC = () => {
+export const UserDashboard: React.FC = () => {
   useAuth();
   const [tickets, setTickets] = useState<TicketData[]>([]);
   const [certificates, setCertificates] = useState<CertificateData[]>([]);
@@ -38,44 +39,37 @@ export const UserDashboardView: React.FC = () => {
   const [error, setError] = useState('');
   const [claimingEventId, setClaimingEventId] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const headers = getAuthHeaders();
-      const [ticketsRes, certsRes] = await Promise.all([
-        fetch(`${API_BASE}/tickets/my`, { headers }),
-        fetch(`${API_BASE}/certificates/my`, { headers })
+      const [ticketsData, certsData] = await Promise.all([
+        ticketsApi.getMyTickets(),
+        certificatesApi.getMyCertificates()
       ]);
 
-      if (!ticketsRes.ok || !certsRes.ok) {
-        throw new Error('Failed to load dashboard records');
-      }
-
-      const ticketsData = await ticketsRes.json();
-      const certsData = await certsRes.json();
-      
       setTickets(ticketsData);
       setCertificates(certsData);
       
       if (ticketsData.length > 0 && !selectedTicket) {
         setSelectedTicket(ticketsData[0]);
       }
-    } catch (err: any) {
-      setError(err.message || 'Error fetching records');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error fetching records');
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleDownloadQr = async (ticketId: number, eventTitle: string) => {
     try {
-      const res = await fetch(`${API_BASE}/tickets/${ticketId}/qrcode`);
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
+      const blob = await ticketsApi.getQrCode(ticketId);
+      const url = window.URL.createObjectURL(blob as Blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `QR_Ticket_${eventTitle.replace(/\s+/g, '_')}.png`;
@@ -91,24 +85,14 @@ export const UserDashboardView: React.FC = () => {
   const handleClaimCertificate = async (eventId: number) => {
     setClaimingEventId(eventId);
     try {
-      const res = await fetch(`${API_BASE}/certificates/claim?eventId=${eventId}`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Certificate claim failed');
-      }
+      await certificatesApi.claimCertificate(eventId);
 
       // Refresh certificates list
-      const certsRes = await fetch(`${API_BASE}/certificates/my`, { headers: getAuthHeaders() });
-      if (certsRes.ok) {
-        setCertificates(await certsRes.json());
-      }
+      const certsData = await certificatesApi.getMyCertificates();
+      setCertificates(certsData);
       alert('Certificate generated and claimed successfully!');
-    } catch (err: any) {
-      alert(err.message || 'Failed to claim certificate. Ensure you have checked-in and attended.');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Failed to claim certificate. Ensure you have checked-in and attended.');
     } finally {
       setClaimingEventId(null);
     }
@@ -199,11 +183,9 @@ export const UserDashboardView: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <img
-                src={`${API_BASE}/tickets/${selectedTicket.id}/qrcode`}
-                alt="Ticket QR Code"
-                style={{ width: '220px', height: '220px' }}
-              />
+              {/* To display the QR, we either fetch the blob and create Object URL or use an img tag if we can inject Auth headers.
+                  Since standard img tag can't send Auth headers, we need to fetch and build URL. */}
+              <QrCodeImage ticketId={selectedTicket.id} />
             </div>
 
             <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.9rem', color: 'hsl(var(--text-secondary))' }}>
@@ -276,7 +258,7 @@ export const UserDashboardView: React.FC = () => {
                     ID: {cert.certificateCode}
                   </span>
                   <a
-                    href={`${API_BASE}/certificates/${cert.id}/download`}
+                    href={certificatesApi.getDownloadUrl(cert.id)}
                     target="_blank"
                     rel="noreferrer"
                     className="btn-secondary"
@@ -296,4 +278,30 @@ export const UserDashboardView: React.FC = () => {
       </section>
     </div>
   );
+};
+
+// Subcomponent to fetch and render QR code image securely with auth headers
+const QrCodeImage: React.FC<{ ticketId: number }> = ({ ticketId }) => {
+  const [imgUrl, setImgUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let url: string;
+    const fetchImg = async () => {
+      try {
+        const blob = await ticketsApi.getQrCode(ticketId);
+        url = URL.createObjectURL(blob as Blob);
+        setImgUrl(url);
+      } catch (e) {
+        console.error("Failed to load QR code", e);
+      }
+    };
+    fetchImg();
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [ticketId]);
+
+  if (!imgUrl) return <div style={{ width: 220, height: 220, background: '#f1f5f9', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>Loading QR...</div>;
+
+  return <img src={imgUrl} alt="Ticket QR Code" style={{ width: '220px', height: '220px' }} />;
 };

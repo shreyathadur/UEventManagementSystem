@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { EventCard } from '../components/EventCard';
-import type { EventData } from '../components/EventCard';
-import { API_BASE } from '../config';
+import { EventCard } from '../../components/common/EventCard';
+import type { EventData } from '../../components/common/EventCard';
+import { eventsApi } from '../../api/events';
+import { sponsorsApi } from '../../api/sponsors';
 import { Search, SlidersHorizontal, Award } from 'lucide-react';
 
 interface SponsorData {
@@ -12,7 +13,7 @@ interface SponsorData {
   contributionAmount: number;
 }
 
-export const HomeView: React.FC = () => {
+export const Home: React.FC = () => {
   const [events, setEvents] = useState<EventData[]>([]);
   const [sponsors, setSponsors] = useState<SponsorData[]>([]);
   const [search, setSearch] = useState('');
@@ -22,12 +23,10 @@ export const HomeView: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [eventsRes, sponsorsRes] = await Promise.all([
-          fetch(`${API_BASE}/events`),
-          fetch(`${API_BASE}/sponsors`)
+        const [eventsData, sponsorsData] = await Promise.all([
+          eventsApi.getAll(),
+          sponsorsApi.getAll()
         ]);
-        const eventsData = await eventsRes.json();
-        const sponsorsData = await sponsorsRes.json();
         setEvents(eventsData);
         setSponsors(sponsorsData);
       } catch (err) {

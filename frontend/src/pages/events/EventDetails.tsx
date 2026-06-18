@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { API_BASE, getAuthHeaders } from '../config';
+import { useAuth } from '../../context/AuthContext';
+import { eventsApi } from '../../api/events';
+import { sponsorsApi } from '../../api/sponsors';
+import { ticketsApi } from '../../api/tickets';
+import { volunteersApi } from '../../api/volunteers';
 import { Calendar, MapPin, Users, Ticket, Award, HandHelping, ArrowLeft, CheckCircle2 } from 'lucide-react';
 
 interface EventData {
@@ -24,7 +27,7 @@ interface SponsorData {
   tier: string;
 }
 
-export const EventDetailView: React.FC = () => {
+export const EventDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user, isAuthenticated } = useAuth();
 
@@ -44,44 +47,37 @@ export const EventDetailView: React.FC = () => {
   useEffect(() => {
     const fetchDetails = async () => {
       try {
-        const [eventRes, sponsorsRes] = await Promise.all([
-          fetch(`${API_BASE}/events/${id}`),
-          fetch(`${API_BASE}/sponsors/event/${id}`)
-        ]);
+        if (!id) return;
 
-        if (!eventRes.ok) throw new Error('Event not found');
-        
-        const eventData = await eventRes.json();
-        const sponsorsData = await sponsorsRes.json();
+        const [eventData, sponsorsData] = await Promise.all([
+          eventsApi.getById(id),
+          sponsorsApi.getEventSponsors(Number(id))
+        ]);
         
         setEvent(eventData);
         setSponsors(sponsorsData);
 
         // If user is logged in, check if they are registered or have volunteered
         if (isAuthenticated && user) {
-          const headers = getAuthHeaders();
-          
-          // Check ticket registrations
-          const ticketsRes = await fetch(`${API_BASE}/tickets/my`, { headers });
-          if (ticketsRes.ok) {
-            const tickets = await ticketsRes.json();
-            const registered = tickets.some((t: any) => t.eventId === Number(id));
+          try {
+            // Check ticket registrations
+            const tickets = await ticketsApi.getMyTickets();
+            const registered = tickets.some((t: { eventId: number }) => t.eventId === Number(id));
             setIsRegistered(registered);
-          }
 
-          // Check volunteer status
-          const volRes = await fetch(`${API_BASE}/volunteers/my-tasks`, { headers });
-          if (volRes.ok) {
-            const volApplications = await volRes.json();
-            const app = volApplications.find((v: any) => v.eventId === Number(id));
+            // Check volunteer status
+            const volApplications = await volunteersApi.getMyTasks();
+            const app = volApplications.find((v: { eventId: number; status: string }) => v.eventId === Number(id));
             if (app) {
               setVolunteerStatus(app.status);
             }
+          } catch (e) {
+            console.error("Failed to fetch user-specific event details", e);
           }
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
-        setMessage({ text: err.message || 'Failed to load event details', type: 'error' });
+        setMessage({ text: err instanceof Error ? err.message : 'Failed to load event details', type: 'error' });
       } finally {
         setLoading(false);
       }
@@ -96,21 +92,12 @@ export const EventDetailView: React.FC = () => {
     setMessage(null);
 
     try {
-      const res = await fetch(`${API_BASE}/tickets/book?eventId=${event.id}`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Booking ticket failed');
-      }
-
+      await ticketsApi.bookTicket(event.id);
       setIsRegistered(true);
       setEvent({ ...event, registeredCount: event.registeredCount + 1 });
       setMessage({ text: 'Registration Successful! Your QR ticket is ready on your dashboard.', type: 'success' });
-    } catch (err: any) {
-      setMessage({ text: err.message || 'Error occurred during registration', type: 'error' });
+    } catch (err: unknown) {
+      setMessage({ text: err instanceof Error ? err.message : 'Error occurred during registration', type: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -123,21 +110,12 @@ export const EventDetailView: React.FC = () => {
     setMessage(null);
 
     try {
-      const res = await fetch(`${API_BASE}/volunteers/apply?eventId=${event.id}&requestedRole=${encodeURIComponent(requestedRole)}`, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Volunteer registration failed');
-      }
-
+      const data = await volunteersApi.apply(event.id, requestedRole);
       setVolunteerStatus(data.status); // Should be PENDING
       setShowVolForm(false);
       setMessage({ text: 'Volunteer application submitted successfully! Pending admin approval.', type: 'success' });
-    } catch (err: any) {
-      setMessage({ text: err.message || 'Error submitting volunteer application', type: 'error' });
+    } catch (err: unknown) {
+      setMessage({ text: err instanceof Error ? err.message : 'Error submitting volunteer application', type: 'error' });
     } finally {
       setSubmitting(false);
     }

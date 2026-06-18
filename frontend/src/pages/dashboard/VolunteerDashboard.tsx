@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { API_BASE, getAuthHeaders } from '../config';
-import { QrScannerModal } from '../components/QrScannerModal';
+import { useAuth } from '../../context/AuthContext';
+import { volunteersApi } from '../../api/volunteers';
+import { checkinsApi } from '../../api/checkins';
+import { QrScannerModal } from '../../components/qr/QrScannerModal';
 import { ClipboardList, CheckCircle2, Clock, Star, ScanLine, XCircle } from 'lucide-react';
 
 interface VolunteerTask {
@@ -15,7 +16,7 @@ interface VolunteerTask {
   status: string;
 }
 
-export const VolunteerDashboardView: React.FC = () => {
+export const VolunteerDashboard: React.FC = () => {
   useAuth();
   const [tasks, setTasks] = useState<VolunteerTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,45 +26,29 @@ export const VolunteerDashboardView: React.FC = () => {
   const [showScanner, setShowScanner] = useState(false);
   const [scanResult, setScanResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  useEffect(() => {
-    fetchVolunteerTasks();
-  }, []);
-
   const fetchVolunteerTasks = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/volunteers/my-tasks`, {
-        headers: getAuthHeaders()
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to load volunteer roles');
-      }
-
-      setTasks(await res.json());
-    } catch (err: any) {
-      setError(err.message || 'Error fetching volunteer dashboard data');
+      const data = await volunteersApi.getMyTasks();
+      setTasks(data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error fetching volunteer dashboard data');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchVolunteerTasks();
+  }, []);
 
   const handleScanSuccess = async (decodedText: string) => {
     setShowScanner(false);
     setScanResult(null);
 
     try {
-      const res = await fetch(`${API_BASE}/checkins/scan`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ ticketCode: decodedText })
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Verification and entry check-in failed');
-      }
-
+      const data = await checkinsApi.scanTicket({ ticketCode: decodedText });
       setScanResult({
         success: true,
         message: `Successfully checked in student ${data.userName} for event ${data.eventTitle}!`
@@ -71,10 +56,10 @@ export const VolunteerDashboardView: React.FC = () => {
       
       // Auto dismiss after 6 seconds
       setTimeout(() => setScanResult(null), 6000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setScanResult({
         success: false,
-        message: err.message || 'Error verifying ticket'
+        message: err instanceof Error ? err.message : 'Error verifying ticket'
       });
     }
   };

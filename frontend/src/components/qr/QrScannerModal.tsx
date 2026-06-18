@@ -11,6 +11,16 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onScan, onClose 
   const qrRegionId = "uems-qr-scanner-region";
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
+  const stopScanner = async () => {
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      try {
+        await scannerRef.current.stop();
+      } catch {
+        // Silent error
+      }
+    }
+  };
+
   useEffect(() => {
     // Start scanning using html5-qrcode
     const html5Qrcode = new Html5Qrcode(qrRegionId);
@@ -44,16 +54,6 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({ onScan, onClose 
       stopScanner();
     };
   }, [onScan]);
-
-  const stopScanner = async () => {
-    if (scannerRef.current && scannerRef.current.isScanning) {
-      try {
-        await scannerRef.current.stop();
-      } catch (e) {
-        // Silent error
-      }
-    }
-  };
 
   return (
     <div style={{

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE, getAuthHeaders } from '../config';
+import { analyticsApi } from '../../api/analytics';
+import { eventsApi } from '../../api/events';
+import { volunteersApi } from '../../api/volunteers';
+import { sponsorsApi } from '../../api/sponsors';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line
@@ -57,7 +60,7 @@ interface SponsorItem {
   contributionAmount: number;
 }
 
-export const AdminDashboardView: React.FC = () => {
+export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'analytics' | 'events' | 'volunteers' | 'sponsors'>('analytics');
   
   // Data state
@@ -98,67 +101,58 @@ export const AdminDashboardView: React.FC = () => {
 
   const CHART_COLORS = ['#6366f1', '#a855f7', '#ec4899', '#10b981', '#f59e0b', '#3b82f6'];
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [activeTab]);
-
   const loadDashboardData = async () => {
     setLoading(true);
     setError('');
     try {
-      const headers = getAuthHeaders();
-      
       if (activeTab === 'analytics') {
-        const res = await fetch(`${API_BASE}/analytics/overview`, { headers });
-        if (!res.ok) throw new Error('Could not retrieve analytics');
-        setAnalytics(await res.json());
+        const data = await analyticsApi.getOverview();
+        setAnalytics(data);
       } else if (activeTab === 'events') {
-        const res = await fetch(`${API_BASE}/events`);
-        if (!res.ok) throw new Error('Could not retrieve events');
-        setEvents(await res.json());
+        const data = await eventsApi.getAll();
+        setEvents(data);
       } else if (activeTab === 'volunteers') {
-        const res = await fetch(`${API_BASE}/volunteers/admin/list`, { headers });
-        if (!res.ok) throw new Error('Could not retrieve volunteer registry');
-        setVolunteers(await res.json());
-        // Load events for selection if needed
-        const evRes = await fetch(`${API_BASE}/events`);
-        if (evRes.ok) setEvents(await evRes.json());
-      } else if (activeTab === 'sponsors') {
-        const [spRes, evRes] = await Promise.all([
-          fetch(`${API_BASE}/sponsors`),
-          fetch(`${API_BASE}/events`)
+        const [volData, evData] = await Promise.all([
+          volunteersApi.getAdminList(),
+          eventsApi.getAll()
         ]);
-        if (!spRes.ok || !evRes.ok) throw new Error('Could not retrieve sponsors list');
-        setSponsors(await spRes.json());
-        setEvents(await evRes.json());
+        setVolunteers(volData);
+        setEvents(evData);
+      } else if (activeTab === 'sponsors') {
+        const [spData, evData] = await Promise.all([
+          sponsorsApi.getAll(),
+          eventsApi.getAll()
+        ]);
+        setSponsors(spData);
+        setEvents(evData);
       }
-    } catch (err: any) {
-      setError(err.message || 'Error communicating with server');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Error communicating with server');
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
   // Event handlers
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${API_BASE}/events`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          title: eventTitle,
-          description: eventDesc,
-          location: eventLoc,
-          startDate: eventStart,
-          endDate: eventEnd,
-          maxCapacity: Number(eventCap),
-          status: eventStatus
-        })
+      await eventsApi.create({
+        title: eventTitle,
+        description: eventDesc,
+        location: eventLoc,
+        startDate: eventStart,
+        endDate: eventEnd,
+        maxCapacity: Number(eventCap),
+        status: eventStatus
       });
 
-      if (!res.ok) throw new Error('Failed to create event');
-      
       // Clear Form
       setEventTitle('');
       setEventDesc('');
@@ -170,22 +164,18 @@ export const AdminDashboardView: React.FC = () => {
       
       loadDashboardData();
       alert('Event created successfully!');
-    } catch (err: any) {
-      alert(err.message || 'Error creating event');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Error creating event');
     }
   };
 
   const handleDeleteEvent = async (id: number) => {
     if (!window.confirm('Are you sure you want to delete this event? All associated tickets, check-ins, volunteers, and sponsors will be removed.')) return;
     try {
-      const res = await fetch(`${API_BASE}/events/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      if (!res.ok) throw new Error('Failed to delete event');
+      await eventsApi.delete(id);
       loadDashboardData();
-    } catch (err: any) {
-      alert(err.message || 'Error deleting event');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Error deleting event');
     }
   };
 
@@ -194,20 +184,14 @@ export const AdminDashboardView: React.FC = () => {
     if (!sponsorEventId) return alert('Select an event for this sponsor');
 
     try {
-      const res = await fetch(`${API_BASE}/sponsors`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          eventId: Number(sponsorEventId),
-          name: sponsorName,
-          logoUrl: sponsorLogo,
-          tier: sponsorTier,
-          contactEmail: sponsorEmail,
-          contributionAmount: Number(sponsorAmount)
-        })
+      await sponsorsApi.create({
+        eventId: Number(sponsorEventId),
+        name: sponsorName,
+        logoUrl: sponsorLogo,
+        tier: sponsorTier,
+        contactEmail: sponsorEmail,
+        contributionAmount: Number(sponsorAmount)
       });
-
-      if (!res.ok) throw new Error('Failed to add sponsor');
 
       setSponsorName('');
       setSponsorLogo('');
@@ -218,63 +202,47 @@ export const AdminDashboardView: React.FC = () => {
 
       loadDashboardData();
       alert('Sponsor added successfully!');
-    } catch (err: any) {
-      alert(err.message || 'Error adding sponsor');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Error adding sponsor');
     }
   };
 
   const handleDeleteSponsor = async (id: number) => {
     if (!window.confirm('Are you sure you want to remove this sponsor?')) return;
     try {
-      const res = await fetch(`${API_BASE}/sponsors/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      if (!res.ok) throw new Error('Failed to remove sponsor');
+      await sponsorsApi.delete(id);
       loadDashboardData();
-    } catch (err: any) {
-      alert(err.message || 'Error removing sponsor');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Error removing sponsor');
     }
   };
 
   const handleReviewVolunteer = async (id: number, status: 'APPROVED' | 'REJECTED') => {
     try {
-      const res = await fetch(`${API_BASE}/volunteers/admin/review/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          status,
-          assignedRole: assignRole || undefined,
-          assignedTasks: assignTasks || undefined
-        })
+      await volunteersApi.reviewApplication(id, {
+        status,
+        assignedRole: assignRole || undefined,
+        assignedTasks: assignTasks || undefined
       });
-
-      if (!res.ok) throw new Error('Failed to update volunteer status');
       setReviewVolId(null);
       setAssignRole('');
       setAssignTasks('');
       loadDashboardData();
-    } catch (err: any) {
-      alert(err.message || 'Error reviewing application');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Error reviewing application');
     }
   };
 
   const handleLogHoursRating = async (id: number) => {
     try {
-      const res = await fetch(`${API_BASE}/volunteers/admin/log/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          hoursWorked: Number(logHours),
-          performanceRating: Number(logRating)
-        })
+      await volunteersApi.logHours(id, {
+        hoursWorked: Number(logHours),
+        performanceRating: Number(logRating)
       });
-
-      if (!res.ok) throw new Error('Failed to log performance stats');
       setEditingVolId(null);
       loadDashboardData();
-    } catch (err: any) {
-      alert(err.message || 'Error updating log');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Error updating log');
     }
   };
 
@@ -304,7 +272,7 @@ export const AdminDashboardView: React.FC = () => {
         ].map(tb => (
           <button
             key={tb.key}
-            onClick={() => setActiveTab(tb.key as any)}
+            onClick={() => setActiveTab(tb.key as 'analytics' | 'events' | 'volunteers' | 'sponsors')}
             className={activeTab === tb.key ? 'btn-primary' : 'btn-secondary'}
             style={{ padding: '0.5rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem' }}
           >
@@ -409,10 +377,10 @@ export const AdminDashboardView: React.FC = () => {
                           label={({ name }) => name}
                         >
                           {analytics.eventStats.map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                           <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value: any) => [`$${value.toLocaleString()}`, 'Revenue']} contentStyle={{ background: '#090d16', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px' }} />
+                        <Tooltip formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']} contentStyle={{ background: '#090d16', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px' }} />
                         <Legend />
                       </PieChart>
                     </ResponsiveContainer>

@@ -31,7 +31,7 @@ services:
       - key: NODE_VERSION
         value: 18
       - key: VITE_API_URL
-        sync: false
+        value: https://uems-backend-ci15.onrender.com/api
     staticPublishPath: ./dist
     plan: free
 
