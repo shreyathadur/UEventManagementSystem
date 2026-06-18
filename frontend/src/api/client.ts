@@ -57,6 +57,84 @@ export const checkBackendHealth = async (): Promise<boolean> => {
   }
 };
 
+export interface HealthStatus {
+  status: 'Starting' | 'Healthy' | 'Database Connected' | 'Unavailable';
+  backendLive: boolean;
+  databaseLive: boolean;
+  message?: string;
+}
+
+export const checkBackendHealthDetails = async (): Promise<HealthStatus> => {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 second timeout
+    
+    const response = await fetch(`${BACKEND_ROOT}/api/health`, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.database === 'CONNECTED') {
+        return {
+          status: 'Database Connected',
+          backendLive: true,
+          databaseLive: true
+        };
+      } else {
+        return {
+          status: 'Healthy',
+          backendLive: true,
+          databaseLive: false,
+          message: 'Backend API online, but database is disconnected.'
+        };
+      }
+    } else {
+      try {
+        const data = await response.json();
+        if (data.database === 'DISCONNECTED') {
+          return {
+            status: 'Healthy',
+            backendLive: true,
+            databaseLive: false,
+            message: 'Database connection offline.'
+          };
+        }
+      } catch {
+        // Ignore JSON parsing failure
+      }
+      return {
+        status: 'Unavailable',
+        backendLive: false,
+        databaseLive: false,
+        message: `Service error: HTTP ${response.status}`
+      };
+    }
+  } catch (error: any) {
+    console.warn("Detailed health check failed:", error);
+    if (error.name === 'AbortError') {
+      return {
+        status: 'Unavailable',
+        backendLive: false,
+        databaseLive: false,
+        message: 'Connection timed out.'
+      };
+    }
+    return {
+      status: 'Starting',
+      backendLive: false,
+      databaseLive: false,
+      message: 'Backend is starting (Render cold start)...'
+    };
+  }
+};
+
 export const getAuthHeaders = (): Record<string, string> => {
   const session = localStorage.getItem('uems_session');
   if (!session) return { 'Content-Type': 'application/json' };
