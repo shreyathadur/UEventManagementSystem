@@ -12,12 +12,24 @@ services:
         value: 8080
       - key: SPRING_PROFILES_ACTIVE
         value: production
-      - key: DATABASE_URL
-        sync: false
-      - key: DATABASE_USERNAME
-        sync: false
-      - key: DATABASE_PASSWORD
-        sync: false
+      envVars:
+  - key: SPRING_PROFILES_ACTIVE
+    value: prod
+
+  - key: SPRING_DATASOURCE_URL
+    fromDatabase:
+      name: uems-db
+      property: connectionString
+
+  - key: SPRING_DATASOURCE_USERNAME
+    fromDatabase:
+      name: uems-db
+      property: user
+
+  - key: SPRING_DATASOURCE_PASSWORD
+    fromDatabase:
+      name: uems-db
+      property: password
     plan: free
 
   - type: static
@@ -27,7 +39,7 @@ services:
     branch: main
     rootDir: frontend
     buildCommand: npm install && npm run build
-    startCommand: npm run preview
+    staticPublishPath: dist
     envVars:
       - key: NODE_VERSION
         value: "20"

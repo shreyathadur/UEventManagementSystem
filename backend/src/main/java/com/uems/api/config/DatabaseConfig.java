@@ -11,13 +11,13 @@ import javax.sql.DataSource;
 @Configuration
 public class DatabaseConfig {
 
-    @Value("${DATABASE_URL:}")
+    @Value("${SPRING_DATASOURCE_URL:${DATABASE_URL:}}")
     private String databaseUrl;
 
-    @Value("${spring.datasource.username:}")
+    @Value("${SPRING_DATASOURCE_USERNAME:${spring.datasource.username:}}")
     private String username;
 
-    @Value("${spring.datasource.password:}")
+    @Value("${SPRING_DATASOURCE_PASSWORD:${spring.datasource.password:}}")
     private String password;
 
     @Value("${spring.datasource.driver-class-name:org.postgresql.Driver}")
