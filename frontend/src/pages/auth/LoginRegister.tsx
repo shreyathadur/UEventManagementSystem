@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../api/auth';
-import { LogIn, UserPlus, Shield, Eye, EyeOff } from 'lucide-react';
+import { checkBackendHealth } from '../../api/client';
+import { LogIn, UserPlus, Shield, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export const LoginRegister: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,14 +14,59 @@ export const LoginRegister: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [backendStatus, setBackendStatus] = useState<'checking' | 'live' | 'starting'>('checking');
 
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let active = true;
+    let pollInterval: any = null;
+
+    const checkStatus = async () => {
+      const isLive = await checkBackendHealth();
+      if (!active) return;
+      
+      if (isLive) {
+        setBackendStatus('live');
+        setError('');
+      } else {
+        setBackendStatus('starting');
+        setError('Backend is starting, please try again in a moment.');
+        
+        // Start polling every 5 seconds until online
+        pollInterval = setInterval(async () => {
+          const liveNow = await checkBackendHealth();
+          if (active && liveNow) {
+            setBackendStatus('live');
+            setError('');
+            if (pollInterval) clearInterval(pollInterval);
+          }
+        }, 5000);
+      }
+    };
+
+    checkStatus();
+
+    return () => {
+      active = false;
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    // Final check before hitting the auth endpoint
+    const isLive = await checkBackendHealth();
+    if (!isLive) {
+      setBackendStatus('starting');
+      setError('Backend is starting, please try again in a moment.');
+      setLoading(false);
+      return;
+    }
 
     try {
       let data;
@@ -189,10 +235,22 @@ export const LoginRegister: React.FC = () => {
           <button
             type="submit"
             className="btn-primary"
-            disabled={loading}
-            style={{ width: '100%', marginTop: '1.5rem', height: '45px' }}
+            disabled={loading || backendStatus === 'checking'}
+            style={{ 
+              width: '100%', 
+              marginTop: '1.5rem', 
+              height: '45px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
+            }}
           >
-            {loading ? 'Processing...' : isLogin ? (
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin" size={18} /> Processing...
+              </>
+            ) : isLogin ? (
               <>
                 <LogIn size={18} /> Sign In
               </>
@@ -204,8 +262,34 @@ export const LoginRegister: React.FC = () => {
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '2rem', fontSize: '0.85rem', color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-          <Shield size={14} /> Secure JWT Encrypted Portal
+        <div style={{ 
+          textAlign: 'center', 
+          marginTop: '2rem', 
+          fontSize: '0.85rem', 
+          color: 'hsl(var(--text-muted))', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          gap: '0.5rem' 
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <Shield size={14} /> Secure JWT Encrypted Portal
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', marginTop: '0.25rem' }}>
+            <span style={{ 
+              display: 'inline-block', 
+              width: '8px', 
+              height: '8px', 
+              borderRadius: '50%', 
+              backgroundColor: backendStatus === 'live' ? '#10b981' : backendStatus === 'starting' ? '#f59e0b' : '#6b7280',
+              boxShadow: backendStatus === 'live' ? '0 0 8px #10b981' : backendStatus === 'starting' ? '0 0 8px #f59e0b' : 'none',
+              transition: 'all 0.3s ease'
+            }} />
+            <span>
+              {backendStatus === 'live' ? 'Backend Online' : backendStatus === 'starting' ? 'Backend Starting (Render cold start)...' : 'Checking connection...'}
+            </span>
+          </div>
         </div>
       </div>
     </div>
