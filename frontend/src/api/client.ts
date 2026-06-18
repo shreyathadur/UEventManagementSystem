@@ -135,6 +135,15 @@ export const checkBackendHealthDetails = async (): Promise<HealthStatus> => {
   }
 };
 
+export const waitForBackend = async (maxAttempts = 10, delayMs = 5000): Promise<boolean> => {
+  for (let i = 0; i < maxAttempts; i++) {
+    const isLive = await checkBackendHealth();
+    if (isLive) return true;
+    await new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+  return false;
+};
+
 export const getAuthHeaders = (): Record<string, string> => {
   const session = localStorage.getItem('uems_session');
   if (!session) return { 'Content-Type': 'application/json' };

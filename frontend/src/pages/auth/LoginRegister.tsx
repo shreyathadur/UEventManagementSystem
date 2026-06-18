@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../api/auth';
-import { checkBackendHealth } from '../../api/client';
+import { checkBackendHealth, waitForBackend } from '../../api/client';
 import { LogIn, UserPlus, Shield, Eye, EyeOff, Loader2 } from 'lucide-react';
 
 export const LoginRegister: React.FC = () => {
@@ -60,12 +60,21 @@ export const LoginRegister: React.FC = () => {
     setLoading(true);
 
     // Final check before hitting the auth endpoint
-    const isLive = await checkBackendHealth();
+    let isLive = await checkBackendHealth();
     if (!isLive) {
       setBackendStatus('starting');
-      setError('Backend is starting, please try again in a moment.');
-      setLoading(false);
-      return;
+      setError('Waking up backend (this may take up to 50 seconds on Render)...');
+      
+      isLive = await waitForBackend(10, 5000);
+      
+      if (!isLive) {
+        setError('Backend is taking too long to start. Please try again.');
+        setLoading(false);
+        return;
+      }
+      
+      setBackendStatus('live');
+      setError('');
     }
 
     try {
