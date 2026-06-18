@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:prod}
   application:
     name: uems-backend
   datasource:
@@ -38,3 +40,8 @@ logging:
   level:
     org.springframework.security: INFO
     org.hibernate.SQL: INFO
+
+antigravity:
+  api:
+    url: https://api.antigravity.service
+    key: ${ANTIGRAVITY_API_KEY:}
