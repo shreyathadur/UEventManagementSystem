@@ -35,11 +35,10 @@ services:
         value: "20"
       - key: VITE_API_URL
         value: https://uems-backend-ci15.onrender.com
-    staticPublishPath: ./dist
     plan: free
 
   - type: postgres
     name: uems-db
-    version: "18"
+    version: "16"
     env: shared
     plan: free
