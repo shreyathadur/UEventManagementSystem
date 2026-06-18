@@ -1,12 +1,11 @@
 services:
   - type: web
     name: uems-backend
-    env: java
+    env: docker
     region: oregon
     branch: main
     rootDir: backend
-    buildCommand: ./mvnw clean package -DskipTests
-    startCommand: java -jar target/*.jar
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: SERVER_PORT
         value: 8080
