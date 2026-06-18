@@ -1,55 +1,42 @@
-databases:
-  - name: uems-db
-    plan: free
-    databaseName: uems
-    user: uems_user
-
 services:
   - type: web
     name: uems-backend
-    runtime: docker
+    env: java
     region: oregon
     branch: main
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    rootDir: backend
+    buildCommand: ./mvnw clean package -DskipTests
+    startCommand: java -jar target/*.jar
+    envVars:
+      - key: SERVER_PORT
+        value: 8080
+      - key: SPRING_PROFILES_ACTIVE
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_USERNAME
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
     plan: free
-    envVars:
-      - key: DB_HOST
-        fromDatabase:
-          name: uems-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: uems-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: uems-db
-          property: database
-      - key: DB_USER
-        fromDatabase:
-          name: uems-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: uems-db
-          property: password
-      - key: JWT_SECRET
-        generateValue: true
 
-  - type: web
+  - type: static
     name: uems-frontend
-    runtime: static
+    env: node
+    region: global
     branch: main
-    rootDir: frontend
-    buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+    buildCommand: npm install && npm run build
+    startCommand: npm run preview
     envVars:
-      - key: VITE_API_URL
-        value: https://uems-backend.onrender.com/api
       - key: NODE_VERSION
-        value: "20"
+        value: 18
+      - key: VITE_API_URL
+        sync: false
+    staticPublishPath: ./dist
+    plan: free
+
+  - type: postgres
+    name: uems-db
+    version: "18"
+    env: shared
+    plan: free
