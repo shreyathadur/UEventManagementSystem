@@ -380,7 +380,8 @@ export const AdminDashboard: React.FC = () => {
                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']} contentStyle={{ background: '#090d16', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px' }} />
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        <Tooltip formatter={(value: any) => [`$${Number(value).toLocaleString()}`, 'Revenue']} contentStyle={{ background: '#090d16', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px' }} />
                         <Legend />
                       </PieChart>
                     </ResponsiveContainer>
